@@ -37,8 +37,8 @@ A Django-based backend for managing tasks and subtasks with user authentication 
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/velizarganchev/todo-list-backend.git
-   cd todo-list-backend
+   git clone https://github.com/velizarganchev/join-backend.git
+   cd join-backend
 2. Set up a virtual environment:
    ```bash
     python -m venv env
