@@ -3,6 +3,15 @@ from todo_list.models import Subtask, Task
 from user_auth_app.models import UserProfile
 from user_auth_app.api.serializers import UserProfileSerializer
 
+"""
+Serializers for task and subtask entities in the todo_list application.
+This module provides nested serialization and custom create/update logic
+for Task instances that include:
+    - Many-to-many member (UserProfile) assignments
+    - Inline creation, update, and deletion of related Subtask instances
+    - Enriched output representation of members via UserProfileSerializer
+"""
+
 
 class SubtaskSerializer(serializers.ModelSerializer):
     class Meta:

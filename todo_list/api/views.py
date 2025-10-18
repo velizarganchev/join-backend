@@ -1,11 +1,156 @@
-from rest_framework import generics, status
-from rest_framework import permissions, authentication
-from rest_framework.views import APIView
-from rest_framework.response import Response
-
-from .throttling import TaskThrottle
-from .serializers import TaskItemSerializer, SubtaskSerializer
 from todo_list.models import Subtask, Task
+from .serializers import TaskItemSerializer, SubtaskSerializer
+from .throttling import TaskThrottle
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework import permissions, authentication
+from rest_framework import generics, status
+
+# Docstring for class Task_View
+"""
+API view for managing Task instances.
+This view supports CRUD operations on Task objects through the following HTTP methods:
+- POST: Create a new task.
+- GET: Retrieve a single task by ID or list all tasks.
+- PUT: Partially update an existing task by ID.
+- DELETE: Delete a task by ID.
+Permissions:
+    - Requires an authenticated user (IsAuthenticated).
+Throttling:
+    - Uses TaskThrottle to rate-limit task creation and modifications.
+Responses:
+    - 200 OK: Successful retrieval, update, or deletion (returns updated collection for delete/create).
+    - 201 Created: Task successfully created (returns full task list).
+    - 400 Bad Request: Validation errors.
+    - 404 Not Found: Task with the given ID does not exist.
+Notes:
+    - PUT operation is implemented as a partial update (partial=True).
+    - After creation (POST) or deletion (DELETE), the full list of tasks is returned for client-side state sync.
+"""
+# Docstring for method Task_View.post
+"""
+Create a new Task.
+Expects a JSON body matching TaskItemSerializer input fields.
+Parameters:
+    request (Request): The incoming HTTP request containing task data.
+    format (str | None): Optional DRF format suffix (unused).
+Returns:
+    Response: On success (201), returns serialized list of all tasks.
+              On validation failure (400), returns serializer errors.
+"""
+# Docstring for method Task_View.get
+"""
+Retrieve one Task by ID or list all Tasks.
+Parameters:
+    request (Request): The incoming HTTP request.
+    task_id (int | None): Primary key of the task to retrieve. If omitted or None, all tasks are returned.
+    format (str | None): Optional DRF format suffix (unused).
+Returns:
+    Response:
+        - 200 OK with serialized task data (single or list).
+        - 404 Not Found if a specific task_id does not exist.
+"""
+# Docstring for method Task_View.put
+"""
+Partially update an existing Task.
+Parameters:
+    request (Request): The incoming HTTP request containing fields to update.
+    task_id (int): Primary key of the task to update.
+    format (str | None): Optional DRF format suffix (unused).
+Returns:
+    Response:
+        - 200 OK with updated task data.
+        - 400 Bad Request with validation errors.
+        - 404 Not Found if the task does not exist.
+Notes:
+    - Uses partial=True allowing partial field updates.
+"""
+# Docstring for method Task_View.delete
+"""
+Delete a Task by ID.
+Parameters:
+    request (Request): The incoming HTTP request.
+    task_id (int): Primary key of the task to delete.
+    format (str | None): Optional DRF format suffix (unused).
+Returns:
+    Response:
+        - 200 OK with the serialized list of remaining tasks after deletion.
+        - 404 Not Found if the task does not exist.
+Side Effects:
+    - Permanently removes the Task instance from the database.
+"""
+# Docstring for class Subtask_View
+"""
+API view for managing Subtask instances associated with Tasks.
+Supports CRUD operations on Subtask objects through:
+- POST: Create a new subtask for a given task.
+- GET: Retrieve a single subtask by ID or list all subtasks.
+- PUT: Partially update a subtask.
+- DELETE: Delete a subtask.
+Responses:
+    - 200 OK: Successful retrieval or update.
+    - 201 Created: Subtask successfully created.
+    - 204 No Content: Successful deletion (returns JSON body with deleted flag).
+    - 400 Bad Request: Validation errors.
+    - 404 Not Found: Task or Subtask not found.
+Notes:
+    - Creation requires a valid 'task' field referencing an existing Task.
+    - Updates are partial (partial=True).
+"""
+# Docstring for method Subtask_View.post
+"""
+Create a new Subtask for a specified Task.
+Expects JSON with required Subtask fields, including a 'task' field referencing the parent task ID.
+Parameters:
+    request (Request): The incoming HTTP request containing subtask data.
+    format (str | None): Optional DRF format suffix (unused).
+Returns:
+    Response:
+        - 201 Created with serialized subtask data.
+        - 404 Not Found if the referenced Task does not exist.
+        - 400 Bad Request with validation errors.
+"""
+# Docstring for method Subtask_View.get
+"""
+Retrieve one Subtask by ID or list all Subtasks.
+Parameters:
+    request (Request): The incoming HTTP request.
+    subtask_id (int | None): Primary key of the subtask to retrieve. If None, returns all subtasks.
+    format (str | None): Optional DRF format suffix (unused).
+Returns:
+    Response:
+        - 200 OK with serialized subtask (single) or list.
+        - 404 Not Found if a specific subtask_id does not exist.
+Note:
+    - The exception handling for a missing subtask should catch Subtask.DoesNotExist (not Task.DoesNotExist).
+"""
+# Docstring for method Subtask_View.put
+"""
+Partially update an existing Subtask.
+Parameters:
+    request (Request): The incoming HTTP request containing fields to update.
+    subtask_id (int): Primary key of the subtask to update.
+    format (str | None): Optional DRF format suffix (unused).
+Returns:
+    Response:
+        - 200 OK with updated subtask data.
+        - 400 Bad Request with validation errors.
+        - 404 Not Found if the subtask does not exist.
+"""
+# Docstring for method Subtask_View.delete
+"""
+Delete a Subtask by ID.
+Parameters:
+    request (Request): The incoming HTTP request.
+    subtask_id (int): Primary key of the subtask to delete.
+    format (str | None): Optional DRF format suffix (unused).
+Returns:
+    Response:
+        - 204 No Content with {'deleted': True} in the body.
+        - 404 Not Found if the subtask does not exist.
+Side Effects:
+    - Permanently removes the Subtask instance from the database.
+"""
 
 
 class Task_View(APIView):
@@ -58,6 +203,8 @@ class Task_View(APIView):
 
 
 class Subtask_View(APIView):
+    throttle_classes = [TaskThrottle]
+
     def post(self, request, format=None):
         task_id = request.data.get('task')
         try:
