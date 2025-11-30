@@ -10,6 +10,7 @@ This file is adapted for Docker (Gunicorn + Nginx) and supports:
 Docs:
 - https://docs.djangoproject.com/en/5.1/
 """
+from datetime import timedelta
 from pathlib import Path
 import os
 
@@ -21,14 +22,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ---------------------------------------------------------------------
 # Core / Security
 # ---------------------------------------------------------------------
-DEBUG = os.getenv("DEBUG", "0") == "1"
+DEBUG = os.getenv("DEBUG", "1") == "1"
 SECRET_KEY = os.getenv(
     "SECRET_KEY",
-    # fallback; замени с реален ключ в .env
     "django-insecure-%0k+7--*nj!=vnk(63xzs1xc-q(37u!cia%+#kgllwi977t1+8",
 )
 
-# Позволени хостове (CSV). По подразбиране включвам предишните ти стойности.
 ALLOWED_HOSTS = [
     h for h in os.getenv(
         "ALLOWED_HOSTS",
@@ -36,7 +35,6 @@ ALLOWED_HOSTS = [
     ).split(",") if h
 ]
 
-# CSRF trusted origins (CSV, напр. https://api.example.com)
 CSRF_TRUSTED_ORIGINS = [
     o for o in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if o
 ]
@@ -44,10 +42,8 @@ CSRF_TRUSTED_ORIGINS = [
 # ---------------------------------------------------------------------
 # CORS
 # ---------------------------------------------------------------------
-# Ако искаш да разрешиш всички: CORS_ALLOW_ALL_ORIGINS=1
 CORS_ALLOW_ALL_ORIGINS = os.getenv("CORS_ALLOW_ALL_ORIGINS", "0") == "1"
 
-# Иначе — списък от произходи (CSV)
 CORS_ALLOWED_ORIGINS = [
     o for o in os.getenv(
         "CORS_ALLOWED_ORIGINS",
@@ -67,19 +63,18 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'rest_framework',
-    'rest_framework.authtoken',
 
     'todo_list',
     'user_auth_app',
 
     'corsheaders',
+    'rest_framework_simplejwt.token_blacklist',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
 
-    # corsheaders трябва да е рано в списъка
     'corsheaders.middleware.CorsMiddleware',
 
     'django.middleware.common.CommonMiddleware',
@@ -94,7 +89,7 @@ ROOT_URLCONF = 'todo_list_backend.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],  # добави пътища към шаблони при нужда
+        'DIRS': [],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -113,8 +108,8 @@ WSGI_APPLICATION = 'todo_list_backend.wsgi.application'
 # Database
 # ---------------------------------------------------------------------
 # Dev: USE_SQLITE=1 -> SQLite
-# Prod: USE_SQLITE=0 -> Postgres (RDS) с SSL по подразбиране
-USE_SQLITE = os.getenv("USE_SQLITE", "0") == "1"
+# Prod: USE_SQLITE=0 -> Postgres (RDS) с SSL
+USE_SQLITE = os.getenv("USE_SQLITE", "1") == "1"
 
 if USE_SQLITE:
     DATABASES = {
@@ -130,11 +125,9 @@ else:
             "NAME": os.getenv("DB_NAME", "join"),
             "USER": os.getenv("DB_USER", "join"),
             "PASSWORD": os.getenv("DB_PASSWORD", ""),
-            # напр. mydb.xxxx.eu-central-1.rds.amazonaws.com
             "HOST": os.getenv("DB_HOST", ""),
             "PORT": os.getenv("DB_PORT", "5432"),
             "OPTIONS": {
-                # RDS обикновено изисква TLS; 'require' е достатъчно за старт.
                 "sslmode": os.getenv("DB_SSLMODE", "require")
             },
         }
@@ -159,22 +152,26 @@ USE_I18N = True
 USE_TZ = True
 
 # ---------------------------------------------------------------------
-# Static & Media (Nginx ще сервира тези пътища през volumes)
+# Static & Media
 # ---------------------------------------------------------------------
 STATIC_URL = "/static/"
-# В Docker-compose сме вързали named volume към /static — така collectstatic пише там.
 STATIC_ROOT = os.getenv("STATIC_ROOT", "/static")
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.getenv("MEDIA_ROOT", "/media")
 
-# Ако искаш допълнителни локални директории за статика при dev, добави ги в .env и разглоби CSV:
-# STATICFILES_DIRS = [d for d in os.getenv("STATICFILES_DIRS", "").split(",") if d]
-
 # ---------------------------------------------------------------------
 # Default primary key field type
 # ---------------------------------------------------------------------
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": False,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
 
 # ---------------------------------------------------------------------
 # DRF
@@ -193,23 +190,16 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.BasicAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.TokenAuthentication',
+        'user_auth_app.authentication.CookieJWTAuthentication',
     ]
 }
 
-# ---------------------------------------------------------------------
-# Security (препоръки за продукция; активни само когато DEBUG=False)
-# ---------------------------------------------------------------------
 if not DEBUG:
-    # доверявай се на X-Forwarded-Proto от reverse proxy (Nginx/Load Balancer)
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
 
-    # HSTS е добра идея ЕДВА СЛЕД като имаш стабилен TLS
     SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "0"))
     SECURE_HSTS_INCLUDE_SUBDOMAINS = os.getenv(
         "SECURE_HSTS_INCLUDE_SUBDOMAINS", "0") == "1"
