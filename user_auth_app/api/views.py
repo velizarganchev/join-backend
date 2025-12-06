@@ -24,7 +24,7 @@ class UserProfileList_View(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
 
-class UserProfileDetail_View(generics.RetrieveUpdateAPIView):
+class UserProfileDetail_View(generics.RetrieveUpdateDestroyAPIView):
     """
     Retrieve, update or delete a user profile.
     """

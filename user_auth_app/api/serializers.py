@@ -9,6 +9,24 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'first_name', 'last_name',
                   'username', 'email']
+        extra_kwargs = {
+            "username": {"read_only": True},
+        }
+
+    def validate_username(self, username):
+        user = self.instance
+
+        if User.objects.filter(username=username).exclude(pk=user.pk).exists():
+            raise serializers.ValidationError(
+                "This username is already taken.")
+        return username
+
+    def validate_email(self, email):
+        user = self.instance
+
+        if User.objects.filter(email=email).exclude(pk=user.pk).exists():
+            raise serializers.ValidationError("This email is already in use.")
+        return email
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
