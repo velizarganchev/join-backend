@@ -35,21 +35,33 @@ ALLOWED_HOSTS = [
     ).split(",") if h
 ]
 
-CSRF_TRUSTED_ORIGINS = [
-    o for o in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if o
-]
 
 # ---------------------------------------------------------------------
 # CORS
 # ---------------------------------------------------------------------
-CORS_ALLOW_ALL_ORIGINS = os.getenv("CORS_ALLOW_ALL_ORIGINS", "0") == "1"
 
-CORS_ALLOWED_ORIGINS = [
-    o for o in os.getenv(
-        "CORS_ALLOWED_ORIGINS",
-        "http://localhost:4200,http://127.0.0.1:5500"
-    ).split(",") if o
-]
+CORS_ALLOW_CREDENTIALS = True
+
+# Ако DEBUG=1 → позволяваме автоматично localhost
+if DEBUG:
+    CORS_ALLOWED_ORIGINS = [
+        "http://localhost:4200",
+        "http://127.0.0.1:4200",
+    ]
+    CSRF_TRUSTED_ORIGINS = [
+        "http://localhost:4200",
+        "http://127.0.0.1:4200",
+    ]
+
+else:
+    # В продукция → използваме домейните, подадени чрез .env
+    CORS_ALLOWED_ORIGINS = [
+        o for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o
+    ]
+
+    CSRF_TRUSTED_ORIGINS = [
+        o for o in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if o
+    ]
 
 # ---------------------------------------------------------------------
 # Applications
