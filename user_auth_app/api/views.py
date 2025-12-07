@@ -44,6 +44,7 @@ class UserProfileDetail_View(generics.RetrieveUpdateDestroyAPIView):
 
 class UserRegister_View(APIView):
     permission_classes = [AllowAny]
+    authentication_classes = []
 
     def post(self, request):
         username = request.data.get('username')
@@ -79,6 +80,7 @@ class UserRegister_View(APIView):
 
 class UserRefreshToken_View(APIView):
     permission_classes = [AllowAny]
+    authentication_classes = []
 
     def post(self, request):
         refresh_token = request.COOKIES.get('refresh_token')
@@ -102,6 +104,7 @@ class UserRefreshToken_View(APIView):
 
 class UserLogin_View(APIView):
     permission_classes = [AllowAny]
+    authentication_classes = []
 
     def post(self, request):
         email = request.data.get('email')
