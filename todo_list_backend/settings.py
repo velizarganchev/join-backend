@@ -196,7 +196,7 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'anon': '1000/day',
         'user': '5000/day',
-        'task-write': '20/day',
+        'task-write': '500/day',
     },
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
