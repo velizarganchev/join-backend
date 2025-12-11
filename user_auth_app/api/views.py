@@ -51,7 +51,8 @@ class UserRegister_View(APIView):
         first_name = request.data.get('first_name')
         last_name = request.data.get('last_name') or ''
         email = request.data.get('email')
-        password = request.data.get('password')
+        password = request.data.get(
+            'password') or User.objects.make_random_password()
         phone_number = request.data.get('phone_number', '')
         color = request.data.get('color', 'green')
 
